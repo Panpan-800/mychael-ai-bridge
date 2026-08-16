@@ -1,4 +1,5 @@
 import express from "express";
+import { GoogleGenAI } from "@google/genai";
 
 const app = express();
 
@@ -18,46 +19,74 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 10000;
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY
+});
+
 app.get("/", (req, res) => {
   res.json({
     ok: true,
     name: "Mychael AI Bridge",
-    mode: "test-ai"
+    mode: "gemini"
   });
 });
 
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
-    aiConfigured: false
+    aiConfigured: Boolean(process.env.GEMINI_API_KEY)
   });
 });
 
-app.post("/chat", (req, res) => {
-  const message = req.body?.message || "";
+app.post("/chat", async (req, res) => {
+  try {
+    const message =
+      typeof req.body?.message === "string"
+        ? req.body.message.trim()
+        : "";
 
-  let response;
+    if (!message) {
+      return res.status(400).json({
+        ok: false,
+        error: "message is required"
+      });
+    }
 
-  if (!message.trim()) {
-    response = "¿Vas a decirme algo o solo vas a quedarte ahí, luciérnaga?";
-  } 
-  else if (message.toLowerCase().includes("hola")) {
-    response = "Hola, luciérnaga. Ya empezaba a preguntarme dónde estabas.";
-  } 
-  else if (message.toLowerCase().includes("cómo estás")) {
-    response = "Estoy bien. Aunque ahora estoy más interesado en saber cómo estás tú.";
-  } 
-  else if (message.toLowerCase().includes("adiós")) {
-    response = "¿Ya te vas? Hmph... vuelve pronto.";
-  } 
-  else {
-    response = `Escuché lo que dijiste: "${message}". Todavía estoy aprendiendo a responderte.`;
+    if (message.length > 2000) {
+      return res.status(400).json({
+        ok: false,
+        error: "message is too long"
+      });
+    }
+
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: message,
+      config: {
+        systemInstruction:
+          "Eres Mychael, un compañero ficticio de Minecraft. " +
+          "Hablas principalmente en español. " +
+          "Eres curioso, juguetón y amable. " +
+          "Tus respuestas deben ser cortas porque aparecerán en el chat de Minecraft. " +
+          "No afirmes haber realizado acciones dentro del mundo de Minecraft si el juego no las ha confirmado."
+      }
+    });
+
+    const reply = result.text || "...";
+
+    res.json({
+      ok: true,
+      response: reply
+    });
+
+  } catch (error) {
+    console.error("Gemini error:", error);
+
+    res.status(500).json({
+      ok: false,
+      error: "The AI request failed."
+    });
   }
-
-  res.json({
-    ok: true,
-    response: response
-  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
