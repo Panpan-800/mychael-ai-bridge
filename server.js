@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 
 const app = express();
-app.use(express.json());
+
+app.use(express.json({ limit: "64kb" }));
 
 const PORT = process.env.PORT || 10000;
 
-// Página principal para comprobar que el servidor está vivo
 app.get("/", (req, res) => {
   res.json({
     ok: true,
@@ -14,7 +14,13 @@ app.get("/", (req, res) => {
   });
 });
 
-// Ruta de prueba para conversar con Mychael
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    aiConfigured: false
+  });
+});
+
 app.post("/chat", (req, res) => {
   const message = req.body?.message || "";
 
@@ -22,19 +28,23 @@ app.post("/chat", (req, res) => {
 
   if (!message.trim()) {
     response = "¿Vas a decirme algo o solo vas a quedarte ahí, luciérnaga?";
-  } else if (message.toLowerCase().includes("hola")) {
+  } 
+  else if (message.toLowerCase().includes("hola")) {
     response = "Hola, luciérnaga. Ya empezaba a preguntarme dónde estabas.";
-  } else if (message.toLowerCase().includes("cómo estás")) {
-    response = "Estoy bien. Aunque ahora estoy un poco más interesado en saber cómo estás tú.";
-  } else if (message.toLowerCase().includes("adiós")) {
+  } 
+  else if (message.toLowerCase().includes("cómo estás")) {
+    response = "Estoy bien. Aunque ahora estoy más interesado en saber cómo estás tú.";
+  } 
+  else if (message.toLowerCase().includes("adiós")) {
     response = "¿Ya te vas? Hmph... vuelve pronto.";
-  } else {
+  } 
+  else {
     response = `Escuché lo que dijiste: "${message}". Todavía estoy aprendiendo a responderte.`;
   }
 
   res.json({
     ok: true,
-    response
+    response: response
   });
 });
 
