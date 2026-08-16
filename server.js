@@ -59,7 +59,11 @@ app.post("/chat", async (req, res) => {
       });
     }
 
-    const result = await ai.models.generateContent({
+    let result;
+
+for (let attempt = 1; attempt <= 3; attempt++) {
+  try {
+    result = await ai.models.generateContent({
       model: "gemini-3.7-flash",
       contents: message,
       config: {
@@ -72,7 +76,19 @@ app.post("/chat", async (req, res) => {
       }
     });
 
-    const reply = result.text || "...";
+    break;
+  } catch (error) {
+    console.error(`Gemini attempt ${attempt} failed:`, error);
+
+    if (attempt < 3) {
+      await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+    } else {
+      throw error;
+    }
+  }
+}
+
+const reply = result.text || "...";
 
     res.json({
       ok: true,
