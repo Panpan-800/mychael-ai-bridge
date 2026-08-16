@@ -1,63 +1,43 @@
-import express from "express";
-import OpenAI from "openai";
+const express = require("express");
 
 const app = express();
-app.use(express.json({ limit: "64kb" }));
+app.use(express.json());
 
-const PORT = Number(process.env.PORT) || 10000;
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.6";
+const PORT = process.env.PORT || 10000;
 
-const client = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-app.get("/", (_req, res) => {
-  res.json({ ok: true, name: "Mychael AI Bridge" });
+// Página principal para comprobar que el servidor está vivo
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    name: "Mychael AI Bridge",
+    mode: "test-ai"
+  });
 });
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, aiConfigured: Boolean(client) });
-});
+// Ruta de prueba para conversar con Mychael
+app.post("/chat", (req, res) => {
+  const message = req.body?.message || "";
 
-app.post("/chat", async (req, res) => {
-  try {
-    const message = typeof req.body?.message === "string"
-      ? req.body.message.trim()
-      : "";
+  let response;
 
-    if (!message) {
-      return res.status(400).json({ ok: false, error: "message is required" });
-    }
-
-    if (message.length > 2000) {
-      return res.status(400).json({ ok: false, error: "message is too long" });
-    }
-
-    if (!client) {
-      return res.status(503).json({
-        ok: false,
-        error: "OPENAI_API_KEY is not configured yet."
-      });
-    }
-
-    const response = await client.responses.create({
-      model: MODEL,
-      instructions:
-        "You are Mychael, a fictional Minecraft companion. " +
-        "Speak Spanish unless the player asks for another language. " +
-        "Be friendly, curious, and playful. " +
-        "Keep replies short enough for Minecraft chat. " +
-        "Do not claim to change the Minecraft world unless the game reports that action.",
-      input: message
-    });
-
-    res.json({ ok: true, reply: response.output_text || "..." });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, error: "The AI request failed." });
+  if (!message.trim()) {
+    response = "¿Vas a decirme algo o solo vas a quedarte ahí, luciérnaga?";
+  } else if (message.toLowerCase().includes("hola")) {
+    response = "Hola, luciérnaga. Ya empezaba a preguntarme dónde estabas.";
+  } else if (message.toLowerCase().includes("cómo estás")) {
+    response = "Estoy bien. Aunque ahora estoy un poco más interesado en saber cómo estás tú.";
+  } else if (message.toLowerCase().includes("adiós")) {
+    response = "¿Ya te vas? Hmph... vuelve pronto.";
+  } else {
+    response = `Escuché lo que dijiste: "${message}". Todavía estoy aprendiendo a responderte.`;
   }
+
+  res.json({
+    ok: true,
+    response
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Mychael AI Bridge listening on port ${PORT}`);
+  console.log(`Mychael AI Bridge running on port ${PORT}`);
 });
